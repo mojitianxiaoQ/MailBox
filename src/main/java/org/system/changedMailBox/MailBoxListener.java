@@ -165,32 +165,42 @@ public class MailBoxListener implements Listener {
             return;
         }
 
-        // 寻找邮箱中第一个有空位的27格区域
-        int targetStartIndex = -1;
+        // 统计邮箱中总的空格数量
         UUID playerUUID = player.getUniqueId();
+        int totalEmptySlots = 0;
+        ItemStack[][] mailboxContents = new ItemStack[9][27];
+
+        // 获取所有邮箱的内容并统计空格
         for (int boxIndex = 1; boxIndex <= 9; boxIndex++) {
-            ItemStack[] existingContents = plugin.getDataManager().getMailBoxContents(playerUUID, boxIndex);
-            for (ItemStack content : existingContents) {
+            mailboxContents[boxIndex - 1] = plugin.getDataManager().getMailBoxContents(playerUUID, boxIndex);
+            for (ItemStack content : mailboxContents[boxIndex - 1]) {
                 if (content == null) {
-                    targetStartIndex = (boxIndex - 1) * 27 + 1;
-                    break; // 找到空位
+                    totalEmptySlots++;
                 }
             }
-            if (targetStartIndex != -1) break; // 找到可插入的区域
         }
 
-        if (targetStartIndex == -1) {
-            player.sendMessage(ChatColor.RED + "发送失败，邮箱空间已满。");
-            return; // 9个箱子都满了
+        // 检查是否有足够的空格
+        if (totalEmptySlots < itemsToSend.size()) {
+            player.sendMessage(ChatColor.RED + "发送失败，邮箱空间不足。当前空格数：" + totalEmptySlots + "，需要空格数：" + itemsToSend.size());
+            return;
         }
 
-        // 将物品写入找到的区域
-        int currentIndex = targetStartIndex;
-        for (ItemStack item : itemsToSend) {
-            plugin.getDataManager().getConfig().set("data." + playerUUID + ".type.mailbox." + currentIndex, item);
-            currentIndex++;
+        // 开始放置物品到邮箱中
+        int itemsPlaced = 0;
+        for (int boxIndex = 0; boxIndex < 9 && itemsPlaced < itemsToSend.size(); boxIndex++) {
+            ItemStack[] currentBoxContents = mailboxContents[boxIndex];
+            for (int slotIndex = 0; slotIndex < 27 && itemsPlaced < itemsToSend.size(); slotIndex++) {
+                if (currentBoxContents[slotIndex] == null) {
+                    // 找到空位，放置物品
+                    currentBoxContents[slotIndex] = itemsToSend.get(itemsPlaced).clone();
+                    itemsPlaced++;
+                }
+            }
+
+            // 保存当前邮箱的内容
+            plugin.getDataManager().setMailBoxContents(playerUUID, boxIndex + 1, currentBoxContents);
         }
-        plugin.getDataManager().saveConfig();
 
         // 清空暂存箱中的物品
         for (int i = 0; i < 26; i++) {
@@ -203,7 +213,7 @@ public class MailBoxListener implements Listener {
         totem.setItemMeta(meta);
         bagInv.setItem(26, totem);
 
-        player.sendMessage(ChatColor.GREEN + "发送成功！");
+        player.sendMessage(ChatColor.GREEN + "发送成功！共发送了 " + itemsPlaced + " 个物品。");
         player.updateInventory();
     }
 
