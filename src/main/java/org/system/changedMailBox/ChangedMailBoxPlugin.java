@@ -1,5 +1,11 @@
 package org.system.changedMailBox;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class ChangedMailBoxPlugin extends JavaPlugin {
@@ -10,26 +16,59 @@ public class ChangedMailBoxPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        // 初始化数据管理器
         dataManager = new DataManager(this);
-        dataManager.reloadConfig(); // 加载现有数据
+        dataManager.reloadConfig();
 
-        // 初始化命令执行器和监听器
         commandExecutor = new MailBoxCommandExecutor(this);
         listener = new MailBoxListener(this);
 
-        // 注册命令
-        getCommand("setmailbox").setExecutor(commandExecutor);
-        getCommand("bag").setExecutor(commandExecutor);
+        registerCommand("setmailbox", commandExecutor);
+        registerCommand("bag", commandExecutor);
+        registerCommand("mail", commandExecutor);
 
-        // 注册事件监听器
         getServer().getPluginManager().registerEvents(listener, this);
+
+        dataManager.startAutoSave();
 
         getLogger().info("changedMailBox 插件已启用！");
     }
 
+    private void registerCommand(String name, CommandExecutor executor) {
+        var cmd = getCommand(name);
+        if (cmd != null) {
+            cmd.setExecutor(executor);
+        } else {
+            getLogger().severe("命令 '" + name + "' 未在 plugin.yml 中注册，跳过！");
+        }
+    }
+
     @Override
     public void onDisable() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            Inventory openInv = player.getOpenInventory().getTopInventory();
+            if (openInv != null) {
+                String title = player.getOpenInventory().getTitle();
+                if (title.startsWith("邮箱 #")) {
+                    try {
+                        int boxIndex = Integer.parseInt(title.substring(title.lastIndexOf('#') + 1));
+                        dataManager.setMailBoxContents(player.getUniqueId(), boxIndex, openInv.getContents());
+                    } catch (NumberFormatException ignored) {
+                    }
+                } else if ("物品暂存箱".equals(title)) {
+                    ItemStack[] contents = new ItemStack[27];
+                    for (int i = 0; i < 27; i++) {
+                        contents[i] = openInv.getItem(i);
+                    }
+                    if (contents[26] != null && contents[26].getType() == Material.TOTEM_OF_UNDYING) {
+                        contents[26] = null;
+                    }
+                    dataManager.setBagContents(player.getUniqueId(), contents);
+                }
+            }
+        }
+        if (dataManager != null) {
+            dataManager.saveConfig();
+        }
         getLogger().info("changedMailBox 插件已禁用！");
     }
 
