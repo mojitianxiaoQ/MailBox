@@ -69,12 +69,6 @@ public class MailBoxListener implements Listener {
                     sendItemsToMailBox(player, e.getInventory());
                 }
             }
-            // 阻止移动发送图腾
-            else if (e.getCurrentItem() != null && e.getCurrentItem().getType() == Material.TOTEM_OF_UNDYING) {
-                if(e.getCurrentItem().getItemMeta() != null && "发送到邮箱".equals(e.getCurrentItem().getItemMeta().getDisplayName())){
-                    e.setCancelled(true);
-                }
-            }
         }
         // 处理邮箱选择器GUI
         else if ("邮箱选择".equals(title)) {
@@ -135,15 +129,31 @@ public class MailBoxListener implements Listener {
     public void onPlayerInteract(PlayerInteractEvent e) {
         if (e.getAction() == Action.RIGHT_CLICK_BLOCK) {
             Block block = e.getClickedBlock();
-            if (block != null && block.getType() == Material.CHEST) {
+            if (block != null) {
                 Player player = e.getPlayer();
                 if (player == null) return;
-                Location clickedLoc = block.getLocation();
-                Location mailboxLoc = plugin.getDataManager().getMailBoxLocation(player.getUniqueId());
 
-                if (mailboxLoc != null && mailboxLoc.equals(clickedLoc)) {
+                if (plugin.isPendingBinding(player.getUniqueId())) {
                     e.setCancelled(true);
-                    openMailBoxSelectorGUI(player);
+                    if (block.getType() == Material.CHEST) {
+                        plugin.getDataManager().setMailBoxLocation(player.getUniqueId(), block.getLocation());
+                        plugin.getDataManager().saveConfig();
+                        plugin.removePendingBinding(player.getUniqueId());
+                        player.sendMessage(ChatColor.GREEN + "邮箱绑定成功！");
+                    } else {
+                        player.sendMessage(ChatColor.RED + "该方块不是箱子，请右键点击一个箱子。");
+                    }
+                    return;
+                }
+
+                if (block.getType() == Material.CHEST) {
+                    Location clickedLoc = block.getLocation();
+                    Location mailboxLoc = plugin.getDataManager().getMailBoxLocation(player.getUniqueId());
+
+                    if (mailboxLoc != null && mailboxLoc.equals(clickedLoc)) {
+                        e.setCancelled(true);
+                        openMailBoxSelectorGUI(player);
+                    }
                 }
             }
         }

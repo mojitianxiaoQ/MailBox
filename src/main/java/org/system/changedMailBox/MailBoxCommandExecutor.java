@@ -1,7 +1,6 @@
 package org.system.changedMailBox;
 
 import org.bukkit.ChatColor;
-import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -28,29 +27,8 @@ public class MailBoxCommandExecutor implements CommandExecutor {
         Player player = (Player) sender;
 
         if (command.getName().equalsIgnoreCase("setmailbox")) {
-            if (args.length != 3) {
-                player.sendMessage(ChatColor.RED + "用法: /setmailbox <x> <y> <z>");
-                return true;
-            }
-
-            double x, y, z;
-            try {
-                x = Double.parseDouble(args[0]);
-                y = Double.parseDouble(args[1]);
-                z = Double.parseDouble(args[2]);
-            } catch (NumberFormatException e) {
-                player.sendMessage(ChatColor.RED + "坐标必须是数字。");
-                return true;
-            }
-
-            Location loc = new Location(player.getWorld(), x, y, z);
-
-            if (loc.getBlock().getType() == Material.CHEST) {
-                plugin.getDataManager().setMailBoxLocation(player.getUniqueId(), loc);
-                player.sendMessage(ChatColor.GREEN + "邮箱绑定成功！");
-            } else {
-                player.sendMessage(ChatColor.RED + "该位置不是一个箱子。");
-            }
+            plugin.addPendingBinding(player.getUniqueId());
+            player.sendMessage(ChatColor.YELLOW + "请右键点击一个箱子来绑定为你的邮箱。");
             return true;
         }
 

@@ -8,11 +8,16 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
 public class ChangedMailBoxPlugin extends JavaPlugin {
 
     private DataManager dataManager;
     private MailBoxCommandExecutor commandExecutor;
     private MailBoxListener listener;
+    private final Set<UUID> pendingBinding = new HashSet<>();
 
     @Override
     public void onEnable() {
@@ -74,5 +79,17 @@ public class ChangedMailBoxPlugin extends JavaPlugin {
 
     public DataManager getDataManager() {
         return dataManager;
+    }
+
+    public boolean isPendingBinding(UUID uuid) {
+        return pendingBinding.contains(uuid);
+    }
+
+    public void addPendingBinding(UUID uuid) {
+        pendingBinding.add(uuid);
+    }
+
+    public void removePendingBinding(UUID uuid) {
+        pendingBinding.remove(uuid);
     }
 }
