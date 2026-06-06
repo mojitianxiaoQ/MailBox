@@ -1,0 +1,4 @@
+name: changedMailBox
+version: '${version}'
+main: org.system.changedMailBox.ChangedMailBoxPlugin
+api-version: '1.20'
